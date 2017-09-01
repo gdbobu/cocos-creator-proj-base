@@ -6,6 +6,7 @@ export class ListView
     private mask:cc.Node;
     private content:cc.Node;
     private item_tpl:cc.Node;
+    private node_pool:cc.Node[];
 
     private dir:number;
     private width:number;
@@ -18,11 +19,12 @@ export class ListView
     private item_height:number;
     private cb_host:any;
     private item_setter:(item:cc.Node, data:any, index:number)=>void;
+    private recycle_cb:(item:cc.Node)=>void;
     private select_cb:(data:any, index:number)=>void;
     private select_setter:(item:cc.Node, is_select:boolean)=>void;
     private scroll_to_end_cb:()=>void;
+    private auto_scrolling:boolean;
     private items:ListItem[];
-    private node_pool:cc.Node[];
     private start_index:number;
     private stop_index:number;
     private _datas:any[];
@@ -46,9 +48,11 @@ export class ListView
         this.col = params.column || 1;
         this.cb_host = params.cb_host;
         this.item_setter = params.item_setter;
+        this.recycle_cb = params.recycle_cb;
         this.select_cb = params.select_cb;
         this.select_setter = params.select_setter;
         this.scroll_to_end_cb = params.scroll_to_end_cb;
+        this.auto_scrolling = params.auto_scrolling || false;
         this.node_pool = [];
 
         if(this.dir == ListViewDir.Vertical)
@@ -76,6 +80,7 @@ export class ListView
         this.scrollview.node.setContentSize(this.width, this.height);
         this.scrollview.vertical = this.dir == ListViewDir.Vertical;
         this.scrollview.horizontal = this.dir == ListViewDir.Horizontal;
+        this.scrollview.inertia = true;
         this.scrollview.node.on("scrolling", this.on_scrolling, this);
         this.scrollview.node.on("scroll-to-bottom", this.on_scroll_to_end, this);
         this.scrollview.node.on("scroll-to-right", this.on_scroll_to_end, this);
@@ -92,6 +97,10 @@ export class ListView
 
     private on_scrolling()
     {
+        if(!this.items)
+        {
+            return;
+        }
         if(this.dir == ListViewDir.Vertical)
         {
             let posy:number = this.content.y;
@@ -157,19 +166,12 @@ export class ListView
             }
         }
     }
-    
-    private on_item_touchend(index:number, event:cc.Event.EventTouch)
-    {
-        // cc.info("on_item_touchend", index, event.target);
-        this.select_item(index);
-    }
 
     select_item(index)
     {
         if(this._selected_index != -1)
         {
             this.inner_select_item(this._selected_index, false);
-            
         }
         this.inner_select_item(index, true);
     }
@@ -207,15 +209,17 @@ export class ListView
             cc.info("spawn_node", index);
         }
         node.parent = this.content;
-        node.on(cc.Node.EventType.TOUCH_END, this.on_item_touchend.bind(this, index), this);
         return node;
     }
 
     private recycle_item(item:ListItem)
     {
-        if(item.node)
+        if(item.node && cc.isValid(item.node))
         {
-            item.node.targetOff(this);
+            if(this.recycle_cb)
+            {
+                this.recycle_cb.call(this.cb_host, item.node);
+            }
             item.node.removeFromParent();
             this.node_pool.push(item.node);
             item.node = null;
@@ -226,7 +230,7 @@ export class ListView
     {
         if(this.items)
         {
-            this.items.forEach((item:ListItem):void=>{
+            this.items.forEach((item) => {
                 this.recycle_item(item);        
             });
         }
@@ -270,9 +274,9 @@ export class ListView
         }
     }
 
-    private pack_item(x:number, y:number, data:any):ListItem
+    private pack_item(data:any):ListItem
     {
-        return {x:x, y:y, data:data, node:null, is_select:false};
+        return {x:0, y:0, data:data, node:null, is_select:false};
     }
 
     private layout_items(start:number)
@@ -317,8 +321,8 @@ export class ListView
         this.clear_items();
         this.items = [];
         this._datas = datas;
-        datas.forEach((data:any):void=>{
-            let item:ListItem = this.pack_item(0, 0, data);
+        datas.forEach((data) => {
+            let item:ListItem = this.pack_item(data);
             this.items.push(item);
         });
         this.layout_items(0);
@@ -339,26 +343,30 @@ export class ListView
         }
     }
 
-    insert_data(index:number, datas:any[])
+    insert_data(index:number, ...datas:any[])
     {
-        if(!this.items)
-        {
-            cc.info("call set_data before call this method");
-            return;
-        }
         if(datas.length == 0 )
         {
             cc.info("nothing to insert");
             return;
+        }
+        if(!this.items)
+        {
+            this.items = [];
+        }
+        if(!this._datas)
+        {
+            this._datas = [];
         }
         if(index < 0 || index > this.items.length)
         {
             cc.warn("invalid index", index);
             return;
         }
+        let is_append:boolean = index == this.items.length;
         let items:ListItem[] = [];
-        datas.forEach((data:any):void=>{
-            let item:ListItem = this.pack_item(0, 0, data);
+        datas.forEach((data) => {
+            let item:ListItem = this.pack_item(data);
             items.push(item);
         });
         this._datas.splice(index, 0, ...datas);
@@ -367,6 +375,11 @@ export class ListView
         this.resize_content();
         this.start_index = -1;
         this.stop_index = -1;
+        
+        if(this.auto_scrolling && is_append)
+        {
+            this.scroll_to_end();
+        }
         this.on_scrolling();
     }
 
@@ -391,7 +404,7 @@ export class ListView
         let del_items:ListItem[] = this.items.splice(index, count);
         this._datas.splice(index, count);
         //回收node
-        del_items.forEach((item:ListItem):void=>{
+        del_items.forEach((item) => {
             this.recycle_item(item);
         });
 
@@ -409,19 +422,25 @@ export class ListView
         }
     }
 
-    append_data(datas:any[])
+    append_data(...datas:any[])
     {
         if(!this.items)
         {
-            cc.info("call set_data before call this method");
-            return;
+            this.items = [];
         }
-        if(datas.length == 0)
+        this.insert_data(this.items.length, ...datas);
+    }
+
+    scroll_to_end()
+    {
+        if(this.dir == ListViewDir.Vertical)
         {
-            cc.info("nothing to append");
-            return;
+            this.scrollview.scrollToBottom();
         }
-        this.insert_data(this.items.length, datas);
+        else
+        {
+            this.scrollview.scrollToRight();
+        }
     }
 
     refresh_item(index:number, data:any)
@@ -448,15 +467,19 @@ export class ListView
     destroy()
     {
         this.clear_items();
-        this.node_pool.forEach((node:cc.Node):void=>{
+        this.node_pool.forEach((node) => {
             node.destroy();
         });
         this.node_pool = null;
         this.items = null;
         this._datas = null;
-        this.scrollview.node.off("scrolling", this.on_scrolling, this);
-        this.scrollview.node.off("scroll-to-bottom", this.on_scroll_to_end, this);
-        this.scrollview.node.off("scroll-to-right", this.on_scroll_to_end, this);
+
+        if(cc.isValid(this.scrollview.node))
+        {
+            this.scrollview.node.off("scrolling", this.on_scrolling, this);
+            this.scrollview.node.off("scroll-to-bottom", this.on_scroll_to_end, this);
+            this.scrollview.node.off("scroll-to-right", this.on_scroll_to_end, this);
+        }
     }
 
     get datas():any[]
@@ -500,9 +523,11 @@ type ListViewParams = {
     column?:number;                                             //垂直方向排版时，水平方向上的列数
     cb_host?:any;                                               //回调函数host
     item_setter:(item:cc.Node, data:any, index:number)=>void;   //item更新setter
+    recycle_cb?:(item:cc.Node)=>void;                           //回收时的回调
     select_cb?:(data:any, index:number)=>void;                  //item选中回调
     select_setter?:(item:cc.Node, is_select:boolean)=>void;      //item选中效果setter
     scroll_to_end_cb?:()=>void;                                  //滚动到尽头的回调
+    auto_scrolling?:boolean;                                     //append时自动滚动到尽头
 }
 
 type ListItem = {

@@ -1,10 +1,10 @@
 import {pop_mgr, UI_CONFIG} from "./pop_mgr"
 import {pool_mgr} from "../pool/pool_mgr"
 import {handler, gen_handler} from "../utils"
-import http from "../http"
+import {Net} from "../net"
 
 const {ccclass, property} = cc._decorator;
-const pop_overlay_bg:string = "pop_overlay_bg";
+const pop_overlay_bg:string = "panel_overlay_bg";
 
 @ccclass
 export class POP_UI_BASE extends cc.Component {
@@ -70,7 +70,7 @@ export class POP_UI_BASE extends cc.Component {
             this.btn_close.node.off(cc.Node.EventType.TOUCH_END, this.on_click_btn_close, this);
         }
         this.on_hide();
-        http.unregister_listeners(this);
+        Net.unregister_listeners(this);
         this.is_show = false;
     }
 

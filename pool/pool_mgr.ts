@@ -36,7 +36,17 @@ export class pool_mgr
 
     put_ui(path:string, ui:cc.Node):void
     {
+        if(!ui)
+        {
+            cc.warn("pool_mgr:put_ui, invalid node");
+            return;
+        }
         this.ui_pool.put(path, ui);
+    }
+
+    clear_atpath(path:string)
+    {
+        this.ui_pool.clear_atpath(path);
     }
 
     clear()

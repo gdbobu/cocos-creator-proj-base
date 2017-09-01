@@ -71,18 +71,9 @@ export class event_mgr
 /**事件名称定义*/
 export const enum Event_Name {
     USER_INFO_UPDATE,
-    LEVEL_UPDATE,
     PHONE_CHANGED,
     PHOTONAME_UPDATE,
-    ACTIVE_AWARD_UPDATE,
-    COLLISION_REWARD_UPDATE,
-    RECOMMEND_REWARD_UPDATE,
-    OPEN_ACCOUNT_SUCCESS,
-    UPGRADE_NODE_SUCCESS,
-    SEEK_NODE,
+    BALANCE_UPDATE,
     SYSTEM_NOTICE_UPDATED,
-    //帖子添加事件
-    TOPIC_ADDED,
-    //帖子赞或踩事件
-    TOPIC_PRAISED
+    PACK_ROOM_INFO_UPDATE,
 }

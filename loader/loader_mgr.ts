@@ -142,6 +142,38 @@ export class loader_mgr
         });
     }
 
+    loadPrefabDir(dir_path:string, cb:handler):void
+    {
+        let map:any = {};
+        cc.loader.loadResDir(dir_path, cc.Prefab, (err:any, res_arr:any[], urls:string[]):void=>{
+            if(err)
+            {
+                cc.warn("loadPrefabObjDir error", dir_path);
+                return;
+            }
+            urls.forEach((url) => {
+                map[url] = cc.loader.getRes(url, cc.Prefab);
+            });
+            cb.exec(map);
+        });
+    }
+
+    loadPrefabObjDir(dir_path:string, cb:handler):void
+    {
+        let map:any = {};
+        cc.loader.loadResDir(dir_path, cc.Prefab, (err:any, res_arr:any[], urls:string[]):void=>{
+            if(err)
+            {
+                cc.warn("loadPrefabObjDir error", dir_path);
+                return;
+            }
+            urls.forEach((url) => {
+                map[url] = cc.instantiate(cc.loader.getRes(url, cc.Prefab));
+            });
+            cb.exec(map);
+        });
+    }
+
     release(urlOrAssetOrNode:any):void
     {
         if(urlOrAssetOrNode instanceof cc.Node)

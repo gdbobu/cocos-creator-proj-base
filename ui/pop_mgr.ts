@@ -33,7 +33,11 @@ export class pop_mgr
 
     clear()
     {
-        this.ui_cache = {};    
+        for(let path in this.ui_cache)
+        {
+            this.hide(path);
+        }
+        this.ui_cache = {};
     }
 
     is_show(path:string):boolean
@@ -75,10 +79,13 @@ export class pop_mgr
         }
         this.ui_cache[path] = null;
         ui.is_show = false;
-        pool_mgr.get_inst().put_ui(path, ui.node);
-        //调用hide
-        let ui_base:POP_UI_BASE = ui.node.getComponent(POP_UI_BASE);
-        ui_base.__hide__();
+        if(ui.node)
+        {
+            pool_mgr.get_inst().put_ui(path, ui.node);
+            //调用hide
+            let ui_base:POP_UI_BASE = ui.node.getComponent(POP_UI_BASE);
+            ui_base.__hide__();
+        }
     }
 }
 
@@ -89,28 +96,26 @@ type pop_ui = {
 
 //界面prefab路径配置, 相对于assets/resources目录
 export const UI_CONFIG = {
-    overlay_bg:"prefabs/pop_overlay_bg",
-    add_node:"prefabs/panel_addnode",
-    upgrade_node:"prefabs/panel_upgradenode",
-    present:"prefabs/panel_present",
+    overlay_bg:"prefabs/panel_overlay_bg",
+    login:"prefabs/panel_login",
+    register:"prefabs/panel_register",
+    findpwd:"prefabs/panel_findpwd",
     cash:"prefabs/panel_cash",
     updatepwd:"prefabs/panel_updatepwd",
     bindcard:"prefabs/panel_bindcard",
     unbindcard:"prefabs/panel_unbindcard",
-    node_choose_lv:"prefabs/panel_chooselv",
-    transaction_list:"prefabs/panel_transaction",
     bind_phone:"prefabs/panel_bindphone",
     reset_pwd:"prefabs/panel_resetpwd",
-    topicview:"prefabs/panel_topicview",
-    topicadd:"prefabs/panel_topicadd",
-    topics:"prefabs/panel_topics",
     msg_box:"prefabs/panel_msgbox",
     notice:"prefabs/panel_notice",
-    trans_type:"prefabs/panel_transtype",
     head_list:"prefabs/panel_headlist",
     server_list:"prefabs/panel_serverlist",
-    activecode:"prefabs/panel_activecode",
-    seekuser:"prefabs/panel_seekuser",
-    confirmed:"prefabs/panel_confirmed",
-    confirm:"prefabs/panel_confirm",
+    create_pack_room:"prefabs/panel_createpackroom",
+    create_sg_room:"prefabs/panel_createsgroom",
+    create_ros_room:"prefabs/panel_createrosroom",
+    join_room:"prefabs/panel_joinroom",
+    pack_play:"prefabs/panel_packplay",
+    game_music:"prefabs/panel_gamemusic",
+    ros_play:"prefabs/panel_roshambo",
+    wxrecharge:"prefabs/panel_recharge",
 }

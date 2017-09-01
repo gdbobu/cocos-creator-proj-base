@@ -1,3 +1,6 @@
+import {loader_mgr} from "../common/loader/loader_mgr"
+import * as consts from "../consts"
+
 let handler_pool:handler[] = [];
 let handler_pool_size = 10;
 
@@ -77,7 +80,7 @@ export class localStorage
         cc.sys.localStorage.setItem(key, value);
     }
 
-    static get(key:string):any
+    static get(key:string):string
     {
         return cc.sys.localStorage.getItem(key);
     }
@@ -96,4 +99,42 @@ export class localStorage
     {
         return JSON.parse(this.get(key));
     }
+
+    static get_float(key:string):number
+    {
+        let str_val = this.get(key);
+        if(str_val)
+        {
+            return parseFloat(str_val);
+        }
+        return null;
+    }
+
+    static get_int(key:string):number
+    {
+        let str_val = this.get(key);
+        if(str_val)
+        {
+            return parseInt(str_val);
+        }
+        return null;
+    }
+}
+
+export function load_head(sprite, head_name)
+{
+    if(!head_name || head_name == "")
+    {
+        head_name = consts.MISC.DEFAULT_HEAD;
+    }
+    loader_mgr.get_inst().loadAsset(head_name, gen_handler((res) => {
+        sprite.spriteFrame = res;
+    }), cc.SpriteFrame);
+}
+
+export function load_img(sprite, img_path)
+{
+    loader_mgr.get_inst().loadAsset(img_path, gen_handler((res) => {
+        sprite.spriteFrame = res;
+    }), cc.SpriteFrame);
 }
